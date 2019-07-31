@@ -9,9 +9,51 @@
 
 using namespace std;
 
+float* load_vertex_data(string filename);
 
 GLuint vaoID;
+int number_of_vertices;
 float CDR = 3.14159265/180.0;
+float* vertex_data;
+
+
+float* load_vertex_data(string filename)
+/* Loads vertex data from the given file, and returns a float* pointing to the data/list of floats.
+ * The first element in the list is the number of verticies in the list (i.e the first element
+ * multiplied by 3 will give you the total number of elements in the list)*/
+{
+	ifstream vertex_file = ifstream(filename.c_str());
+
+	if (!vertex_file.good()) {
+		cout << "There was an error opening the given file." << endl;
+	}
+
+	int num_vertices;
+	string line;
+	getline(vertex_file, line);
+	istringstream line_string = istringstream(line);
+	line_string >> num_vertices;
+
+	float* data_pointer = new float[num_vertices*3]; //each vertex has 3 floats, so 3 times the number of vertices
+	                                                  //and we add 1 to make the first element the number of vertices in the file
+	data_pointer[0] = num_vertices;
+
+	int i = 1;
+	while (getline(vertex_file, line)) {
+		float x, y, z;
+		line_string = istringstream(line);
+		line_string >> x >> y >> z;
+		data_pointer[i] = x;
+		data_pointer[i+1] = y;
+		data_pointer[i+2] = z;
+		i += 3;
+	}
+
+	return data_pointer;
+}
+
+
+
 
 GLuint load_shader(GLenum shader_type, string shader_filename)
 {
@@ -51,7 +93,7 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //@@ look up meaning
 	glBindVertexArray(vaoID);
-	glDrawElements(GL_QUADS, 24, GL_UNSIGNED_SHORT, NULL);
+	glDrawArrays(GL_PATCHES, 0, number_of_vertices);
 	glFlush();
 }
 
@@ -59,12 +101,17 @@ void display()
 
 void initialise()
 {
-	GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "CubePatches.vert");
-	GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "CubePatches.frag");
+	GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "bezier_surfaces.vert");
+	GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "bezier_surfaces.frag");
+	GLuint control_shader = load_shader(GL_TESS_CONTROL_SHADER, "bezier_surfaces.cont");
+	GLuint evaluation_shader = load_shader(GL_TESS_EVALUATION_SHADER, "bezier_surfaces.eval");
+
 
 	GLuint program = glCreateProgram();
 	glAttachShader(program, vertex_shader);
 	glAttachShader(program, fragment_shader);
+	glAttachShader(program, control_shader);
+	glAttachShader(program, evaluation_shader);
 	glLinkProgram(program);
 
 	GLint status;
@@ -83,25 +130,26 @@ void initialise()
 	glm::mat4 proj, view, projView;
 
 	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
-	view = glm::lookAt(glm::vec3(0.0, 5.0, 12.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
+	view = glm::lookAt(glm::vec3(0.0, 5.0, 20.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj*view;  //Product matrix
 
-	GLuint vboID[4];
+	vertex_data = load_vertex_data("PatchFiles/PatchVerts_Teapot.txt");
+	number_of_vertices = vertex_data[0];
+	vertex_data++; //the first element is the number of verticies, so increment the pointer to ignore that first value
 
+	//Load VAOs
+	GLuint vboID[2];
 	glGenVertexArrays(1, &vaoID);
     glBindVertexArray(vaoID);
 
-    glGenVertexArrays(2, vboID);
+    glGenVertexArrays(2, vboID); //generate a vertex array
 
-    glBindBuffer(GL_ARRAY_BUFFER, vboID[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);  // Vertex position
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vboID[0]); //tell openGL that this buffer is specifying "Vertex attributes" and bind it so we can work on it
+	glPatchParameteri(GL_PATCH_VERTICES, 16); //let opngl know that our patches have 16 vertices each
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*number_of_vertices*3, vertex_data, GL_STATIC_DRAW); //bind the data in vextex_data to this vbo
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL); /*set the location index to 0 (this is the index you use to
+	access the data in this vbo in the shaders), tell it that each vertex is defined with 3 floats.*/
+    glEnableVertexAttribArray(0);  //enable the vertex positon array/vbo we just set up
 
 	GLuint matrixLoc = glGetUniformLocation(program, "mvpMatrix");
 	glUniformMatrix4fv(matrixLoc, 1, GL_FALSE, &projView[0][0]);
