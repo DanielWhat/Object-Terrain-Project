@@ -105,6 +105,7 @@ void initialise()
 	GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "bezier_surfaces.frag");
 	GLuint control_shader = load_shader(GL_TESS_CONTROL_SHADER, "bezier_surfaces.cont");
 	GLuint evaluation_shader = load_shader(GL_TESS_EVALUATION_SHADER, "bezier_surfaces.eval");
+	GLuint geometry_shader = load_shader(GL_GEOMETRY_SHADER, "bezier_surfaces.geom");
 
 
 	GLuint program = glCreateProgram();
@@ -112,6 +113,7 @@ void initialise()
 	glAttachShader(program, fragment_shader);
 	glAttachShader(program, control_shader);
 	glAttachShader(program, evaluation_shader);
+	glAttachShader(program, geometry_shader);
 	glLinkProgram(program);
 
 	GLint status;
@@ -132,6 +134,21 @@ void initialise()
 	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
 	view = glm::lookAt(glm::vec3(0.0, 5.0, 20.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj*view;  //Product matrix
+	glm::vec4 view_vector = -glm::vec4(0.0, 5.0, 20.0, 1);
+
+	//Make them uniform variables to give the shader's access to them;
+	GLuint model_view_proj_matrix_location = glGetUniformLocation(program, "pMatrix");
+	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &proj[0][0]);
+
+	GLuint model_view_matrix_location = glGetUniformLocation(program, "mvMatrix");
+	glUniformMatrix4fv(model_view_matrix_location, 1, GL_FALSE, &view[0][0]);
+
+	GLuint view_vector_location = glGetUniformLocation(program, "view_vector");
+	glUniform4fv(view_vector_location, 1, &view_vector[0]);
+
+
+
+
 
 	vertex_data = load_vertex_data("PatchFiles/PatchVerts_Teapot.txt");
 	number_of_vertices = vertex_data[0];
@@ -151,12 +168,9 @@ void initialise()
 	access the data in this vbo in the shaders), tell it that each vertex is defined with 3 floats.*/
     glEnableVertexAttribArray(0);  //enable the vertex positon array/vbo we just set up
 
-	GLuint matrixLoc = glGetUniformLocation(program, "mvpMatrix");
-	glUniformMatrix4fv(matrixLoc, 1, GL_FALSE, &projView[0][0]);
-
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glEnable(GL_CULL_FACE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
