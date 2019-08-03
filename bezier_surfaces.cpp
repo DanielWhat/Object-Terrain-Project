@@ -10,9 +10,12 @@
 using namespace std;
 
 float* load_vertex_data(string filename);
-
 GLuint vaoID_teapot;
 GLuint vaoID_floor;
+
+float distance_from_teapot;
+float z_offset = 0;
+int teapot_polygon_mode = GL_FILL;
 
 int number_of_vertices;
 int number_of_floor_vertices;
@@ -138,12 +141,35 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //@@ look up meaning
 
+	glm::mat4 proj, view, projView;
+
+	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
+	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0 + z_offset), glm::vec3(0.0, 0.0, 0.0 + z_offset), glm::vec3(0.0, 1.0, 0.0)); //view matrix
+	projView = proj*view;  //Product matrix
+
+	distance_from_teapot = glm::length(glm::vec3(0.0, 5.0, 30.0 + z_offset)); //since teapot is at origin, camera position is a vector for distance from teapot
+
+	//Teapot
 	glUseProgram(teapot_program);
+
+	GLuint model_view_proj_matrix_location = glGetUniformLocation(teapot_program, "pMatrix");
+	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &proj[0][0]);
+	GLuint model_view_matrix_location = glGetUniformLocation(teapot_program, "mvMatrix");
+	glUniformMatrix4fv(model_view_matrix_location, 1, GL_FALSE, &view[0][0]);
+	GLuint distance_from_teapot_location = glGetUniformLocation(teapot_program, "distance_from_teapot");
+	glUniform1f(distance_from_teapot_location, distance_from_teapot);
+
 	glBindVertexArray(vaoID_teapot);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, teapot_polygon_mode);
 	glDrawArrays(GL_PATCHES, 0, number_of_vertices);
 
+
+	//Floor Grid
 	glUseProgram(floor_grid_program);
+
+	GLuint model_view_proj_matrix_location_floor = glGetUniformLocation(floor_grid_program, "mvpMatrix");
+	glUniformMatrix4fv(model_view_proj_matrix_location_floor, 1, GL_FALSE, &projView[0][0]);
+
 	glBindVertexArray(vaoID_floor);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glDrawArrays(GL_QUADS, 0, number_of_floor_vertices);
@@ -174,15 +200,6 @@ void initialise_floor_grid()
 		delete[] infolog;
 	}
 	glUseProgram(floor_grid_program); //tells GL to use the program we just created to render stuff until we specify otherwise
-
-	glm::mat4 proj, view, projView;
-
-	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
-	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
-	projView = proj*view;  //Product matrix
-
-	GLuint model_view_proj_matrix_location = glGetUniformLocation(floor_grid_program, "mvpMatrix");
-	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &projView[0][0]);
 
 	float* vertex_data = generate_floor_grid(10, 15, 2, glm::vec3(-10, 0, -15));
 	number_of_floor_vertices = 10 * 15 * 4;
@@ -240,17 +257,11 @@ void initialise_teapot()
 	glm::mat4 proj, view, projView;
 
 	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
-	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
+	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0 + z_offset), glm::vec3(0.0, 0.0, 0.0 + z_offset), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj*view;  //Product matrix
 	glm::vec3 light_point = glm::vec3(3, 30, 100);
 
-	//Make them uniform variables to give the shader's access to them;
-	GLuint model_view_proj_matrix_location = glGetUniformLocation(teapot_program, "pMatrix");
-	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &proj[0][0]);
-
-	GLuint model_view_matrix_location = glGetUniformLocation(teapot_program, "mvMatrix");
-	glUniformMatrix4fv(model_view_matrix_location, 1, GL_FALSE, &view[0][0]);
-
+	//Make some uniform variables to give the shader's access to them;
 	GLuint light_point_location = glGetUniformLocation(teapot_program, "light_point");
 	glUniform3fv(light_point_location, 1, &light_point[0]);
 
@@ -281,6 +292,26 @@ void initialise_teapot()
 }
 
 
+void move_camera(int key, int x, int y)
+{
+	if (key == GLUT_KEY_UP) {
+		z_offset -= 1;
+	} else if (key == GLUT_KEY_DOWN) {
+		z_offset += 1;
+	}
+	glutPostRedisplay();
+
+}
+
+void toggle_teapot_wireframe (unsigned char key, int x, int y)
+{
+	if (key == 'w') {
+		teapot_polygon_mode = (teapot_polygon_mode == GL_FILL) ? GL_LINE : GL_FILL;
+		glutPostRedisplay();
+	}
+}
+
+
 int main (int argc, char** argv)
 {
 	glutInit(&argc, argv); //initialises GLUT libary and makes sure a window is ready
@@ -304,6 +335,8 @@ int main (int argc, char** argv)
 
 	initialise_teapot();
 	initialise_floor_grid();
+	glutSpecialFunc(move_camera);
+	glutKeyboardFunc(toggle_teapot_wireframe);
 	glutDisplayFunc(display); //use the display function defined above to refresh the display
 	glutMainLoop(); //enter the program loop
 	return 0;

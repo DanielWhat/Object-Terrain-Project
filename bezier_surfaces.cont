@@ -2,11 +2,14 @@
 
 layout (vertices = 16) out;
 
+uniform float distance_from_teapot;
+
 void main()
 {
 		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
-		float tess_level = 16;
+		float tess_level = floor(((distance_from_teapot - 15) / (40 - 15)) * (2 - 16) + 16);
+		tess_level = (tess_level < 2) ? 2 : tess_level;
 
 		gl_TessLevelOuter[0] = tess_level;
 		gl_TessLevelOuter[1] = tess_level;
