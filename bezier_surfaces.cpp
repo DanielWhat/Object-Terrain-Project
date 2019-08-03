@@ -11,10 +11,55 @@ using namespace std;
 
 float* load_vertex_data(string filename);
 
-GLuint vaoID;
+GLuint vaoID_teapot;
+GLuint vaoID_floor;
+
 int number_of_vertices;
+int number_of_floor_vertices;
 float CDR = 3.14159265/180.0;
-float* vertex_data;
+GLuint teapot_program;
+GLuint floor_grid_program;
+//glm::vec4 camera_location =
+
+
+float* generate_floor_grid(int num_x_boxes, int num_y_boxes, int box_length, glm::vec3 origin)
+/* Generates a floor grid of num_x_boxes by num_y_boxes. The origin gives the coordinates
+ * of the bottom left of the grid. Returns a pointer to float* list where every 3 floats
+ * reprisents a vertex.*/
+{
+	int i, j;
+	float* floor_grid_vertices = new float[num_x_boxes*num_y_boxes*4*3]; /*5*5 gives the number of boxes, *4 gives the number of verticies
+													   and *3 gives the number of floats*/
+	for (j = 0; j < num_x_boxes; j++) {
+		for (i = 0; i < num_y_boxes; i++) {
+			//assign 0, 0
+			//cout << j*20 << 'y' << i*20 << endl;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes] = j*box_length + origin.x;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 1] = origin.y;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 2] = i*box_length + origin.z;
+
+			//assign 0, 20
+			//cout << j*20 << 'y' << (i+1)*20 << endl;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 3] = j*box_length + origin.x;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 4] = origin.y;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 5] = (i+1)*box_length + origin.z;
+
+			//assign 20, 20
+			//cout << (j+1)*20 << 'y' << (i+1)*20 << endl;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 6] = (j+1)*box_length + origin.x;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 7] = origin.y;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 8] = (i+1)*box_length + origin.z;
+
+			//assign 20, 0
+			//cout << (j+1)*20 << 'y' << i*20 << endl;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 9] = (j+1)*box_length + origin.x;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 10] = origin.y;
+			floor_grid_vertices[i*12 + j*12*num_y_boxes + 11] = i*box_length + origin.z;
+		}
+	}
+
+	return floor_grid_vertices;
+}
 
 
 float* load_vertex_data(string filename)
@@ -92,14 +137,77 @@ GLuint load_shader(GLenum shader_type, string shader_filename)
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //@@ look up meaning
-	glBindVertexArray(vaoID);
+
+	glUseProgram(teapot_program);
+	glBindVertexArray(vaoID_teapot);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glDrawArrays(GL_PATCHES, 0, number_of_vertices);
+
+	glUseProgram(floor_grid_program);
+	glBindVertexArray(vaoID_floor);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glDrawArrays(GL_QUADS, 0, number_of_floor_vertices);
+
 	glFlush();
 }
 
 
+void initialise_floor_grid()
+{
+	GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "bezier_surfaces_floor.vert");
+	GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "bezier_surfaces_floor.frag");
 
-void initialise()
+	floor_grid_program = glCreateProgram();
+	glAttachShader(floor_grid_program, vertex_shader);
+	glAttachShader(floor_grid_program, fragment_shader);
+	glLinkProgram(floor_grid_program);
+
+	GLint status;
+	glGetProgramiv(floor_grid_program, GL_LINK_STATUS, &status); //get the link status from the program and put it into "status"
+
+	if (status == GL_FALSE) {
+		GLint infolog_length;
+		glGetProgramiv(floor_grid_program, GL_INFO_LOG_LENGTH, &infolog_length);
+		GLchar* infolog = new GLchar[infolog_length + 1];
+		glGetProgramInfoLog(floor_grid_program, infolog_length, NULL, infolog);
+		fprintf(stderr, "Linker failure: %s\n", infolog);
+		delete[] infolog;
+	}
+	glUseProgram(floor_grid_program); //tells GL to use the program we just created to render stuff until we specify otherwise
+
+	glm::mat4 proj, view, projView;
+
+	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
+	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
+	projView = proj*view;  //Product matrix
+
+	GLuint model_view_proj_matrix_location = glGetUniformLocation(floor_grid_program, "mvpMatrix");
+	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &projView[0][0]);
+
+	float* vertex_data = generate_floor_grid(10, 15, 2, glm::vec3(-10, 0, -15));
+	number_of_floor_vertices = 10 * 15 * 4;
+
+	//Load VAOs
+	GLuint vboID[2];
+	glGenVertexArrays(1, &vaoID_floor);
+	glBindVertexArray(vaoID_floor);
+
+	glGenVertexArrays(2, vboID); //generate a vertex array
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboID[0]); //tell openGL that this buffer is specifying "Vertex attributes" and bind it so we can work on it
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*number_of_floor_vertices*3, vertex_data, GL_STATIC_DRAW); //bind the data in vextex_data to this vbo
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL); /*set the location index to 0 (this is the index you use to
+	access the data in this vbo in the shaders), tell it that each vertex is defined with 3 floats. */
+	glEnableVertexAttribArray(0);  //enable the vertex positon array/vbo we just set up
+
+	glEnable(GL_DEPTH_TEST);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+
+
+void initialise_teapot()
 {
 	GLuint vertex_shader = load_shader(GL_VERTEX_SHADER, "bezier_surfaces.vert");
 	GLuint fragment_shader = load_shader(GL_FRAGMENT_SHADER, "bezier_surfaces.frag");
@@ -108,56 +216,54 @@ void initialise()
 	GLuint geometry_shader = load_shader(GL_GEOMETRY_SHADER, "bezier_surfaces.geom");
 
 
-	GLuint program = glCreateProgram();
-	glAttachShader(program, vertex_shader);
-	glAttachShader(program, fragment_shader);
-	glAttachShader(program, control_shader);
-	glAttachShader(program, evaluation_shader);
-	glAttachShader(program, geometry_shader);
-	glLinkProgram(program);
+	teapot_program = glCreateProgram();
+	glAttachShader(teapot_program, vertex_shader);
+	glAttachShader(teapot_program, fragment_shader);
+	glAttachShader(teapot_program, control_shader);
+	glAttachShader(teapot_program, evaluation_shader);
+	glAttachShader(teapot_program, geometry_shader);
+	glLinkProgram(teapot_program);
 
 	GLint status;
-	glGetProgramiv(program, GL_LINK_STATUS, &status); //get the link status from the program and put it into "status"
+	glGetProgramiv(teapot_program, GL_LINK_STATUS, &status); //get the link status from the program and put it into "status"
 
 	if (status == GL_FALSE) {
 		GLint infolog_length;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infolog_length);
+		glGetProgramiv(teapot_program, GL_INFO_LOG_LENGTH, &infolog_length);
 		GLchar* infolog = new GLchar[infolog_length + 1];
-		glGetProgramInfoLog(program, infolog_length, NULL, infolog);
+		glGetProgramInfoLog(teapot_program, infolog_length, NULL, infolog);
 		fprintf(stderr, "Linker failure: %s\n", infolog);
 		delete[] infolog;
 	}
-	glUseProgram(program); //tells GL to use the program we just created to render stuff until we specify otherwise
+	glUseProgram(teapot_program); //tells GL to use the program we just created to render stuff until we specify otherwise
 
 	glm::mat4 proj, view, projView;
 
 	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
-	view = glm::lookAt(glm::vec3(0.0, 5.0, 20.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
+	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj*view;  //Product matrix
-	glm::vec4 view_vector = -glm::vec4(0.0, 5.0, 20.0, 1);
+	glm::vec3 light_point = glm::vec3(3, 30, 100);
 
 	//Make them uniform variables to give the shader's access to them;
-	GLuint model_view_proj_matrix_location = glGetUniformLocation(program, "pMatrix");
+	GLuint model_view_proj_matrix_location = glGetUniformLocation(teapot_program, "pMatrix");
 	glUniformMatrix4fv(model_view_proj_matrix_location, 1, GL_FALSE, &proj[0][0]);
 
-	GLuint model_view_matrix_location = glGetUniformLocation(program, "mvMatrix");
+	GLuint model_view_matrix_location = glGetUniformLocation(teapot_program, "mvMatrix");
 	glUniformMatrix4fv(model_view_matrix_location, 1, GL_FALSE, &view[0][0]);
 
-	GLuint view_vector_location = glGetUniformLocation(program, "view_vector");
-	glUniform4fv(view_vector_location, 1, &view_vector[0]);
+	GLuint light_point_location = glGetUniformLocation(teapot_program, "light_point");
+	glUniform3fv(light_point_location, 1, &light_point[0]);
 
 
 
-
-
-	vertex_data = load_vertex_data("PatchFiles/PatchVerts_Teapot.txt");
+	float* vertex_data = load_vertex_data("PatchFiles/PatchVerts_Teapot.txt"); //@@@ CAREFUL, THIS MAY CAUSE PROBLEMS LATER ********************************************************
 	number_of_vertices = vertex_data[0];
 	vertex_data++; //the first element is the number of verticies, so increment the pointer to ignore that first value
 
 	//Load VAOs
 	GLuint vboID[2];
-	glGenVertexArrays(1, &vaoID);
-    glBindVertexArray(vaoID);
+	glGenVertexArrays(1, &vaoID_teapot);
+    glBindVertexArray(vaoID_teapot);
 
     glGenVertexArrays(2, vboID); //generate a vertex array
 
@@ -196,7 +302,8 @@ int main (int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	initialise();
+	initialise_teapot();
+	initialise_floor_grid();
 	glutDisplayFunc(display); //use the display function defined above to refresh the display
 	glutMainLoop(); //enter the program loop
 	return 0;

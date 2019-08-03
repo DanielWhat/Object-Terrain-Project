@@ -4,9 +4,8 @@ layout (triangle_strip, max_vertices = 3) out;
 
 uniform mat4 pMatrix;
 uniform mat4 mvMatrix;
-//uniform vec4 view_vector;
+uniform vec3 light_point;
 
-vec3 light_point = vec3(3, 30, 100);
 vec3 light_vector;
 vec3 normal_vector;
 vec4 plane_vector_1;
