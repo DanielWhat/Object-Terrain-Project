@@ -1,0 +1,33 @@
+#version 400
+
+layout(vertices = 4) out;
+
+uniform mat4 view_matrix;
+uniform vec3 camera_position;
+
+vec4 camera_pos_view_space;
+
+vec4 average_point;
+
+void main()
+{
+    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+
+    average_point = (gl_in[0].gl_Position + gl_in[1].gl_Position + gl_in[2].gl_Position + gl_in[3].gl_Position) * 0.25; //get the average of the patch vertices
+
+    average_point = view_matrix * average_point; //convert the point into clip coordinates
+    camera_pos_view_space = vec4(camera_position.x, camera_position.y, camera_position.z, 1);
+    camera_pos_view_space = view_matrix * camera_pos_view_space;
+
+    float patch_distance_from_cam = length(average_point.xyz);
+
+    float tesselation_level = ((patch_distance_from_cam - 10) / (110 - 10)) * (2 - 30) + 30;
+    tesselation_level = max(tesselation_level, 2);
+
+    gl_TessLevelOuter[0] = tesselation_level;
+    gl_TessLevelOuter[1] = tesselation_level;
+    gl_TessLevelOuter[2] = tesselation_level;
+    gl_TessLevelOuter[3] = tesselation_level;
+    gl_TessLevelInner[0] = tesselation_level;
+    gl_TessLevelInner[1] = tesselation_level;
+}
