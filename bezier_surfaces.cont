@@ -3,12 +3,36 @@
 layout (vertices = 16) out;
 
 uniform float distance_from_teapot;
+uniform float time;
+uniform float initial_velocity;
+
+vec4 output_position;
+vec3 initial_direction_vector;
+vec3 proj_of_direction_vec_on_xz_plane;
 
 void main()
 {
-		gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+		//Patch explosion stuff
+		initial_direction_vector = gl_in[0].gl_Position.xyz; //@@come back to this
+		proj_of_direction_vec_on_xz_plane = normalize(vec3(initial_direction_vector.x, 0, initial_direction_vector.z));
+		float v_xz = initial_velocity * dot(proj_of_direction_vec_on_xz_plane, normalize(initial_direction_vector));
+		float v_y = initial_velocity * sin(acos(dot(proj_of_direction_vec_on_xz_plane, normalize(initial_direction_vector))));
+		float gravity = 10;
 
-		float tess_level = floor(((distance_from_teapot - 15) / (40 - 15)) * (2 - 16) + 16);
+		output_position.y = gl_in[gl_InvocationID].gl_Position.y + v_y * time - 0.5 * gravity * pow(time, 2);
+		if (output_position.y < 0) {
+			
+		}
+
+		output_position.x = gl_in[gl_InvocationID].gl_Position.x + initial_direction_vector.x * v_xz * time;
+		output_position.z = gl_in[gl_InvocationID].gl_Position.z + initial_direction_vector.z * v_xz * time;
+		output_position.w = 1;
+
+		gl_out[gl_InvocationID].gl_Position = output_position;
+
+
+		//Dynamic level of detail stuff
+		float tess_level = floor(((distance_from_teapot - 15) / (40 - 15)) * (2 - 18) + 18);
 		tess_level = (tess_level < 2) ? 2 : tess_level;
 
 		gl_TessLevelOuter[0] = tess_level;

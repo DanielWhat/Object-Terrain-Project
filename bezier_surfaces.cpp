@@ -7,6 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "CubePatches.h"
 
+#define LIGHT_BLUE glm::vec4(0, 0.2, 1, 1)
+#define BLACK glm::vec4(0, 0, 0, 1)
+
 using namespace std;
 
 float* load_vertex_data(string filename);
@@ -16,6 +19,10 @@ GLuint vaoID_floor;
 float distance_from_teapot;
 float z_offset = 0;
 int teapot_polygon_mode = GL_FILL;
+glm::vec4 teapot_colour = LIGHT_BLUE;
+
+float initial_velocity = 4;
+float explosion_time = 0;
 
 int number_of_vertices;
 int number_of_floor_vertices;
@@ -158,6 +165,10 @@ void display()
 	glUniformMatrix4fv(model_view_matrix_location, 1, GL_FALSE, &view[0][0]);
 	GLuint distance_from_teapot_location = glGetUniformLocation(teapot_program, "distance_from_teapot");
 	glUniform1f(distance_from_teapot_location, distance_from_teapot);
+	GLuint teapot_colour_location = glGetUniformLocation(teapot_program, "teapot_colour");
+	glUniform4fv(teapot_colour_location, 1, &teapot_colour[0]);
+	GLuint time_location = glGetUniformLocation(teapot_program, "time");
+	glUniform1f(time_location, explosion_time);
 
 	glBindVertexArray(vaoID_teapot);
 	glPolygonMode(GL_FRONT_AND_BACK, teapot_polygon_mode);
@@ -259,11 +270,18 @@ void initialise_teapot()
 	proj = glm::perspective(20.0f*CDR, 1.0f, 10.0f, 1000.0f);  //perspective projection matrix
 	view = glm::lookAt(glm::vec3(0.0, 5.0, 30.0 + z_offset), glm::vec3(0.0, 0.0, 0.0 + z_offset), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj*view;  //Product matrix
+	glm::vec3 camera_point = glm::vec3(glm::vec3(0.0, 5.0, 30.0 + z_offset));
 	glm::vec3 light_point = glm::vec3(3, 30, 100);
 
 	//Make some uniform variables to give the shader's access to them;
 	GLuint light_point_location = glGetUniformLocation(teapot_program, "light_point");
 	glUniform3fv(light_point_location, 1, &light_point[0]);
+
+	GLuint camera_point_location = glGetUniformLocation(teapot_program, "camera_point");
+	glUniform3fv(camera_point_location, 1, &camera_point[0]);
+
+	GLuint initial_velocity_location = glGetUniformLocation(teapot_program, "initial_velocity");
+	glUniform1f(initial_velocity_location, initial_velocity);
 
 
 
@@ -292,6 +310,17 @@ void initialise_teapot()
 }
 
 
+void render_explosion(int value)
+/* Handles the updating of the explosion effect. Calls itself to render the next frame */
+{
+	explosion_time += 0.01;
+	if (explosion_time < 0.8) {
+		glutTimerFunc(1000/30.0, render_explosion, 0);
+	}
+	glutPostRedisplay();
+}
+
+
 void move_camera(int key, int x, int y)
 {
 	if (key == GLUT_KEY_UP) {
@@ -307,7 +336,12 @@ void toggle_teapot_wireframe (unsigned char key, int x, int y)
 {
 	if (key == 'w') {
 		teapot_polygon_mode = (teapot_polygon_mode == GL_FILL) ? GL_LINE : GL_FILL;
+		teapot_colour = (teapot_colour == LIGHT_BLUE) ? BLACK : LIGHT_BLUE;
 		glutPostRedisplay();
+
+	} else if (key == ' ') {
+		render_explosion(0);
+		cout << "Explosion started" << endl;
 	}
 }
 
