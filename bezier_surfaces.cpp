@@ -313,8 +313,8 @@ void initialise_teapot()
 void render_explosion(int value)
 /* Handles the updating of the explosion effect. Calls itself to render the next frame */
 {
-	explosion_time += 0.01;
-	if (explosion_time < 0.8) {
+	explosion_time += 0.03;
+	if (explosion_time < 10) {
 		glutTimerFunc(1000/30.0, render_explosion, 0);
 	}
 	glutPostRedisplay();
