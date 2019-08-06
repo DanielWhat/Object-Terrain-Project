@@ -21,8 +21,8 @@ void main()
 
     float patch_distance_from_cam = length(average_point.xyz);
 
-    float tesselation_level = ((patch_distance_from_cam - 10) / (110 - 10)) * (2 - 30) + 30;
-    tesselation_level = max(tesselation_level, 2);
+    float tesselation_level = ((patch_distance_from_cam - 10) / (110 - 10)) * (5 - 60) + 60;
+    tesselation_level = max(tesselation_level, 5);
 
     gl_TessLevelOuter[0] = tesselation_level;
     gl_TessLevelOuter[1] = tesselation_level;

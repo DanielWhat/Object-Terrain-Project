@@ -69,11 +69,40 @@ void generateData()
 //Loads terrain texture
 void loadTextures()
 {
-	GLuint texID;
-    glGenTextures(1, &texID);
+	GLuint texID[6];
+    glGenTextures(6, texID);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texID);
+    glBindTexture(GL_TEXTURE_2D, texID[0]);
 	loadTGA("HeightMap1.tga");
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+
+	glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texID[1]);
+	loadTGA("./textures/dirt.tga");
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, texID[2]);
+	loadTGA("./textures/green_grass.tga");
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, texID[3]);
+	loadTGA("./textures/water.tga");
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, texID[4]);
+	loadTGA("./textures/snow.tga");
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -148,6 +177,14 @@ void initialise()
 
 	GLuint texLoc = glGetUniformLocation(program, "heightMap");
 	glUniform1i(texLoc, 0);
+	GLuint brown_grass_tex_loc = glGetUniformLocation(program, "brown_grass_tex");
+	glUniform1i(brown_grass_tex_loc, 1);
+	GLuint green_grass_tex_loc = glGetUniformLocation(program, "green_grass_tex");
+	glUniform1i(green_grass_tex_loc, 2);
+	GLuint water_tex_loc = glGetUniformLocation(program, "water_tex");
+	glUniform1i(water_tex_loc, 3);
+	GLuint snow_tex_loc = glGetUniformLocation(program, "snow_tex");
+	glUniform1i(snow_tex_loc, 4);
 
 //--------Compute matrices----------------------
 	proj = glm::perspective(30.0f*CDR, 1.25f, 20.0f, 500.0f);  //perspective projection matrix

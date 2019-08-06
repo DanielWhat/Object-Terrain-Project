@@ -6,10 +6,13 @@ uniform mat4 mvpMatrix;
 uniform sampler2D heightMap;
 vec4 posn;
 
+out vec2 texture_coordinate;
+
 void main()
 {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
+    texture_coordinate = vec2(gl_TessCoord.x, gl_TessCoord.y);
 
     // Enter code for posn below.
     posn = (1-u) * (1-v) * gl_in[0].gl_Position
