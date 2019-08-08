@@ -23,6 +23,8 @@ GLuint theProgram;
 GLuint mvpMatrixLoc;
 GLuint camera_position_loc;
 GLuint view_matrix_loc;
+GLuint water_level_loc;
+GLuint snow_level_loc;
 
 float CDR = 3.14159265/180.0;     //Conversion from degrees to rad (required in GLM 0.9.6)
 
@@ -34,6 +36,12 @@ glm::vec3 camera_position;
 
 float z_offset;
 float x_offset;
+GLuint polygon_mode = GL_FILL;
+
+float water_level = 1;
+float snow_level = 5;
+
+GLuint texID[6];
 
 //Generate vertex and element data for the terrain floor
 void generateData()
@@ -66,17 +74,25 @@ void generateData()
 	}
 }
 
-//Loads terrain texture
-void loadTextures()
+void load_height_map(string heightmap_filename, GLuint tex_id, GLuint gl_texture)
+/* Takes a heihgtmap file name, a texture_id and a GL_TEXTUREi constant. It then
+ *  assigns the given texture to GL_TEXTUREi and the texture_id */
 {
-	GLuint texID[6];
-    glGenTextures(6, texID);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texID[0]);
-	loadTGA("HeightMap1.tga");
+	glActiveTexture(gl_texture);
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+	loadTGA(heightmap_filename);
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+}
+
+
+//Loads terrain texture
+void loadTextures()
+{
+    glGenTextures(6, texID);
+	load_height_map("HeightMap2.tga", texID[0], GL_TEXTURE0);
 
 
 	glActiveTexture(GL_TEXTURE1);
@@ -174,6 +190,8 @@ void initialise()
 	mvpMatrixLoc = glGetUniformLocation(program, "mvpMatrix");
 	camera_position_loc = glGetUniformLocation(program, "camera_position");
 	view_matrix_loc = glGetUniformLocation(program, "view_matrix");
+	water_level_loc = glGetUniformLocation(program, "water_level");
+	snow_level_loc = glGetUniformLocation(program, "snow_level");
 
 	GLuint texLoc = glGetUniformLocation(program, "heightMap");
 	glUniform1i(texLoc, 0);
@@ -211,7 +229,6 @@ void initialise()
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
@@ -225,19 +242,41 @@ void display()
 	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, &projView[0][0]);
 	glUniformMatrix4fv(view_matrix_loc, 1, GL_FALSE, &view[0][0]);
 	glUniform4fv(camera_position_loc, 1, &camera_position[0]);
+	glUniform1f(water_level_loc, water_level);
+	glUniform1f(snow_level_loc, snow_level);
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
 	glBindVertexArray(vaoID);
 	glDrawElements(GL_PATCHES, 81*4, GL_UNSIGNED_SHORT, NULL);
 	glFlush();
 }
 
-/*void keyboard_event_handler (unsigned char key, int x, int y)
+void keyboard_event_handler (unsigned char key, int x, int y)
 {
+	if (key == '1') {
+		load_height_map("HeightMap1.tga", texID[0], GL_TEXTURE0);
 
+	} else if (key == '2') {
+		load_height_map("HeightMap2.tga", texID[0], GL_TEXTURE0);
 
+	} else if (key == 'w') {
+		polygon_mode = (polygon_mode == GL_LINE) ? GL_FILL : GL_LINE;
 
-}*/
+	} else if (key == 'u') {
+		water_level += 0.1;
+
+	} else if (key == 'j') {
+		water_level -= 0.1;
+
+	} else if (key == 'i') {
+		snow_level += 0.1;
+
+	} else if (key == 'k') {
+		snow_level -= 0.1;
+	}
+	glutPostRedisplay();
+}
 
 
 void special_keyboard_event_handler(int key, int x, int y)
@@ -279,6 +318,7 @@ int main(int argc, char** argv)
 	}
 
 	initialise();
+	glutKeyboardFunc(keyboard_event_handler);
 	glutSpecialFunc(special_keyboard_event_handler);
 	glutDisplayFunc(display);
 	glutMainLoop();

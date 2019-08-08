@@ -6,6 +6,8 @@ layout (triangle_strip, max_vertices = 3) out;
 in vec2 texture_coordinate[];
 
 uniform mat4 mvpMatrix;
+uniform float water_level;
+uniform float snow_level;
 vec3 light_point = vec3(0, 100, 60);
 
 out float l_dot_n;
@@ -17,7 +19,7 @@ vec3 normal_vector;
 vec4 plane_vector_1;
 vec4 plane_vector_2;
 vec3 light_vector;
-float water_level = 1;
+vec2 mid_uv_coords;
 
 vec4 get_gl_position(vec4 gl_pos)
 /* Takes the gl_Position vec4 point and returns the new gl_Position point.
@@ -31,25 +33,34 @@ vec4 get_texture_weights(vec4 gl_pos)
 /* Takes a gl_Position vec4 and returns the corresponding texture weights
  * depending on the height of the point. */
 {
+    float max_grass_level = 1 + 2;
+    float edited_snow_level = max(snow_level, max_grass_level);
+    float max_dirt_level = 1 + edited_snow_level;
+    vec4 grass_blending_terrain = vec4(0, 0, 1, 0);
+
     //water
     if (gl_pos.y <= water_level) {
         return vec4(1, 0, 0, 0);
 
     //grass
-    } else if (gl_pos.y < water_level + 0.2) {
+    } else if (gl_pos.y < 1 + 0.2) {
         return vec4(0, 1, 0, 0);
 
-    //grass to dirt
-    } else if (gl_pos.y < water_level + 2) {
-        float lambda = (gl_pos.y - (water_level + 0.2)) / (water_level + 2 - (water_level + 0.2));
-        return lambda * vec4(0, 0, 1, 0) + (1 - lambda) * vec4(0, 1, 0, 0);
+    //grass to dirt (or grass to snow if snow is low enough)
+    } else if (gl_pos.y < max_grass_level) {
+        float lambda = (gl_pos.y - (1 + 0.2)) / (max_grass_level - (1 + 0.2));
+        return lambda * grass_blending_terrain + (1 - lambda) * vec4(0, 1, 0, 0);
+
     //dirt
-    } else if (gl_pos.y < water_level + 4) {
+    } else if (gl_pos.y < max_dirt_level - 1.2) {
         return vec4(0, 0, 1, 0);
 
-    } else if (gl_pos.y < water_level + 5) {
-        float lambda = (gl_pos.y - (water_level + 4)) / (water_level + 5 - (water_level + 4));
+    //dirt to snow
+    } else if (gl_pos.y < max_dirt_level) {
+        float lambda = (gl_pos.y - (max_dirt_level - 1.2)) / (max_dirt_level - (max_dirt_level - 1.2));
         return lambda * vec4(0, 0, 0, 1) + (1 - lambda) * vec4(0, 0, 1, 0);
+
+    //snow
     } else {
         return vec4(0, 0, 0, 1);
     }
@@ -64,6 +75,13 @@ void main()
     normal_vector = normalize(vec3(plane_vector_1.y * plane_vector_2.z - plane_vector_2.y * plane_vector_1.z,
                                  -(plane_vector_1.x * plane_vector_2.z - plane_vector_2.x * plane_vector_1.z),
                                    plane_vector_1.x * plane_vector_2.y - plane_vector_2.x * plane_vector_1.y));
+
+
+
+    mid_uv_coords = 0.5 * texture_coordinate[0] + 0.5 * texture_coordinate[1];
+
+
+
 
     int i;
     for (i = 0; i < gl_in.length; i++) {
