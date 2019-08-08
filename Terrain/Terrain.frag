@@ -7,6 +7,7 @@ uniform sampler2D brown_grass_tex;
 uniform sampler2D green_grass_tex;
 uniform sampler2D water_tex;
 uniform sampler2D snow_tex;
+uniform bool is_wireframe;
 
 vec4 colour;
 
@@ -17,5 +18,9 @@ void main()
            + texture(green_grass_tex, texture_coord) * texture_weights.y
            + texture(brown_grass_tex, texture_coord) * texture_weights.z
            + texture(snow_tex, texture_coord) * texture_weights.w;
+
+    if (is_wireframe) {
+        colour = vec4 (0.2, 0.2, 0.2, 1);
+    }
     gl_FragColor = colour * vec4(0.2, 0.2, 0.2, 1) + l_dot_n * colour;
 }
