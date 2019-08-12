@@ -97,7 +97,6 @@ void main()
         vec4 vertex_pnt = get_gl_position(gl_in[i].gl_Position);
         gl_Position =  mvpMatrix * vertex_pnt;
         vec3 light_vector = normalize(light_point - vertex_pnt.xyz);
-        //normal_vector = get_normal_vector(texture_coordinate[i]);
         l_dot_n = dot(normal_vector, light_vector);
         texture_coord = texture_coordinate[i];
         texture_weights = get_texture_weights(vertex_pnt);
@@ -105,30 +104,48 @@ void main()
     }
     EndPrimitive();
 
-    /*for (i = 0; i < 3; i++) {
-        int kek = (i + 1) % 3;
-        vec4 mid_point = 0.5 * get_gl_position(gl_in[i].gl_Position) + 0.5 * get_gl_position(gl_in[kek].gl_Position);
-        mid_point.y -= 10;
+    /*gl_Position = mvpMatrix * gl_in[0].gl_Position;
+    texture_coord = texture_coordinate[0];
+    l_dot_n = 0;
+    EmitVertex();
+    gl_Position = mvpMatrix * gl_in[1].gl_Position;
+    texture_coord = texture_coordinate[0];
+    l_dot_n = 0;
+    EmitVertex();
+    gl_Position = mvpMatrix * gl_in[1].gl_Position + vec4(2, 2, 3, 0);
+    texture_coord = texture_coordinate[0];
+    l_dot_n = 0;
+    EmitVertex();
+    EndPrimitive();*/
 
-        int j;
-        for (j = 0; j < 3; j++) {
-            if (j == i || j == kek) {
-                vec4 vertex_pnt = get_gl_position(gl_in[i].gl_Position);
-                gl_Position =  mvpMatrix * vertex_pnt;
-                vec3 light_vector = normalize(light_point - vertex_pnt.xyz);
-                l_dot_n = dot(normal_vector, light_vector);
-                texture_coord = texture_coordinate[i];
-                texture_weights = get_texture_weights(vertex_pnt);
-                EmitVertex();
-            }
-        }
-        vec4 vertex_pnt = mid_point;
-        gl_Position =  mvpMatrix * vertex_pnt;
-        vec3 light_vector = normalize(light_point - vertex_pnt.xyz);
+    float t = 1 - (gl_in[2].gl_Position.z + 100) / 100.0;
+
+    //texture_coordinate[2].y < 0.01 ensures that we only generte a skirt at the edge of a patche
+    //t > 0.05 ensures that we don't generate a skirt for the patch closest to us
+    if (texture_coordinate[2].y < 0.01 && t > 0.05) {
+        gl_Position = mvpMatrix * get_gl_position(gl_in[2].gl_Position);
+        vec3 light_vector = normalize(light_point - gl_in[2].gl_Position.xyz);
         l_dot_n = dot(normal_vector, light_vector);
-        texture_coord = 0.5 * texture_coordinate[i] + 0.5 * texture_coordinate[kek];
-        texture_weights = get_texture_weights(vertex_pnt);
+        texture_coord = texture_coordinate[2];
+        EmitVertex();
+
+        gl_Position = mvpMatrix * get_gl_position(gl_in[1].gl_Position);
+        light_vector = normalize(light_point - gl_in[1].gl_Position.xyz);
+        l_dot_n = dot(normal_vector, light_vector);
+        texture_coord = texture_coordinate[1];
+        EmitVertex();
+
+        vec4 edited_vector = get_gl_position(gl_in[2].gl_Position - vec4(0, 0.2, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[2];
+        EmitVertex();
+
+        edited_vector = get_gl_position(gl_in[1].gl_Position - vec4(0, 0.2, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[1];
         EmitVertex();
         EndPrimitive();
-    }*/
+    }
 }

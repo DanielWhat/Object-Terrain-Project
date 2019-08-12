@@ -22,5 +22,5 @@ void main()
     if (is_wireframe) {
         colour = vec4 (0.2, 0.2, 0.2, 1);
     }
-    gl_FragColor = colour * vec4(0.2, 0.2, 0.2, 1) + l_dot_n * colour;
+    gl_FragColor = colour * vec4(0.2, 0.2, 0.2, 1) + max(l_dot_n, 0) * colour;
 }
