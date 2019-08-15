@@ -10,6 +10,7 @@ uniform float water_level;
 uniform float snow_level;
 uniform float max_grass_level;
 uniform sampler2D heightMap;
+uniform bool is_wireframe;
 vec3 light_point = vec3(0, 100, 60);
 
 out float l_dot_n;
@@ -19,23 +20,6 @@ out vec4 texture_weights;
 vec3 normal_vector;
 vec4 plane_vector_1;
 vec4 plane_vector_2;
-
-
-/*vec3 get_normal_vector(vec2 texture_coords)
-{
-    float incr = 0.0016;
-    vec4 height_vector = texture(heightMap, texture_coords);
-    vec3 center_point = vec3(texture_coords.x, height_vector.x, texture_coords.y);
-    vec3 normal_array[4] = vec3[4](vec3(incr, 0, 0, 1), vec3(-incr, 0, 0, 1), vec3(0, incr, 0, 1), vec3(0, -incr, 0, 1);
-
-    for (int i = 0; i < 4; i++) {
-        vec4 height_vec = texture(heightMap, texture_coords + normal_array[i].xy);
-        vec3 vertex =
-    }
-
-
-    return normal_vector;
-}*/
 
 
 vec4 get_gl_position(vec4 gl_pos)
@@ -104,27 +88,50 @@ void main()
     }
     EndPrimitive();
 
-    /*gl_Position = mvpMatrix * gl_in[0].gl_Position;
-    texture_coord = texture_coordinate[0];
-    l_dot_n = 0;
-    EmitVertex();
-    gl_Position = mvpMatrix * gl_in[1].gl_Position;
-    texture_coord = texture_coordinate[0];
-    l_dot_n = 0;
-    EmitVertex();
-    gl_Position = mvpMatrix * gl_in[1].gl_Position + vec4(2, 2, 3, 0);
-    texture_coord = texture_coordinate[0];
-    l_dot_n = 0;
-    EmitVertex();
-    EndPrimitive();*/
+    if (is_wireframe) { //don't do any cracking fixes if in wireframe mode
+        return;
+    }
+
+    // Cracking fixes
 
     float t = 1 - (gl_in[2].gl_Position.z + 100) / 100.0;
 
-    //texture_coordinate[2].y < 0.01 ensures that we only generte a skirt at the edge of a patche
+    //texture_coordinate[2].y < 0.01 ensures that we only generte a skirt at the edge of a patch
     //t > 0.05 ensures that we don't generate a skirt for the patch closest to us
     if (texture_coordinate[2].y < 0.01 && t > 0.05) {
         gl_Position = mvpMatrix * get_gl_position(gl_in[2].gl_Position);
         vec3 light_vector = normalize(light_point - gl_in[2].gl_Position.xyz);
+        l_dot_n = dot(normal_vector, light_vector);
+        texture_coord = texture_coordinate[2];
+        texture_weights = get_texture_weights(gl_in[2].gl_Position);
+        EmitVertex();
+
+        gl_Position = mvpMatrix * get_gl_position(gl_in[1].gl_Position);
+        light_vector = normalize(light_point - gl_in[1].gl_Position.xyz);
+        l_dot_n = dot(normal_vector, light_vector);
+        texture_coord = texture_coordinate[1];
+        texture_weights = get_texture_weights(gl_in[1].gl_Position);
+        EmitVertex();
+
+        vec4 edited_vector = get_gl_position(gl_in[2].gl_Position - vec4(0, 0.2, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[2];
+        texture_weights = get_texture_weights(edited_vector);
+        EmitVertex();
+
+        edited_vector = get_gl_position(gl_in[1].gl_Position - vec4(0, 0.2, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[1];
+        texture_weights = get_texture_weights(edited_vector);
+        EmitVertex();
+        EndPrimitive();
+    }
+
+    if (texture_coordinate[2].x < 0.01) {
+        gl_Position = mvpMatrix * get_gl_position(gl_in[0].gl_Position);
+        vec3 light_vector = normalize(light_point - gl_in[0].gl_Position.xyz);
         l_dot_n = dot(normal_vector, light_vector);
         texture_coord = texture_coordinate[2];
         EmitVertex();
@@ -135,17 +142,45 @@ void main()
         texture_coord = texture_coordinate[1];
         EmitVertex();
 
-        vec4 edited_vector = get_gl_position(gl_in[2].gl_Position - vec4(0, 0.2, 0, 0));
+        vec4 edited_vector = get_gl_position(gl_in[0].gl_Position - vec4(0.1, 10.0, 0, 0));
         gl_Position = mvpMatrix * edited_vector;
         light_vector = normalize(light_point - edited_vector.xyz);
         texture_coord = texture_coordinate[2];
         EmitVertex();
 
-        edited_vector = get_gl_position(gl_in[1].gl_Position - vec4(0, 0.2, 0, 0));
+        edited_vector = get_gl_position(gl_in[1].gl_Position - vec4(0.1, 10, 0, 0));
         gl_Position = mvpMatrix * edited_vector;
         light_vector = normalize(light_point - edited_vector.xyz);
         texture_coord = texture_coordinate[1];
         EmitVertex();
         EndPrimitive();
     }
+
+    if (texture_coordinate[2].x > 0.99) {
+        gl_Position = mvpMatrix * get_gl_position(gl_in[0].gl_Position);
+        vec3 light_vector = normalize(light_point - gl_in[0].gl_Position.xyz);
+        l_dot_n = dot(normal_vector, light_vector);
+        texture_coord = texture_coordinate[2];
+        EmitVertex();
+
+        gl_Position = mvpMatrix * get_gl_position(gl_in[1].gl_Position);
+        light_vector = normalize(light_point - gl_in[1].gl_Position.xyz);
+        l_dot_n = dot(normal_vector, light_vector);
+        texture_coord = texture_coordinate[1];
+        EmitVertex();
+
+        vec4 edited_vector = get_gl_position(gl_in[0].gl_Position - vec4(-0.2, 10.4, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[2];
+        EmitVertex();
+
+        edited_vector = get_gl_position(gl_in[1].gl_Position - vec4(-0.2, 10.4, 0, 0));
+        gl_Position = mvpMatrix * edited_vector;
+        light_vector = normalize(light_point - edited_vector.xyz);
+        texture_coord = texture_coordinate[1];
+        EmitVertex();
+        EndPrimitive();
+    }
+
 }

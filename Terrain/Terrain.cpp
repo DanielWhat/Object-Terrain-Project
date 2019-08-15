@@ -238,7 +238,7 @@ void initialise()
 //Display function to compute uniform values based on transformation parameters and to draw the scene
 void display()
 {
-	camera_position = glm::vec3(0.0 + x_offset, 20.0, 30.0 + z_offset);
+	camera_position = glm::vec3(0.0 + x_offset, 20.0, 22.0 + z_offset);
 	view = glm::lookAt(camera_position, glm::vec3(0.0 + x_offset, 0.0, -40.0 + z_offset), glm::vec3(0.0, 1.0, 0.0)); //view matrix
 	projView = proj * view;  //Product (mvp) matrix
 

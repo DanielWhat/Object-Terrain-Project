@@ -20,7 +20,8 @@ void main()
            + texture(snow_tex, texture_coord) * texture_weights.w;
 
     if (is_wireframe) {
-        colour = vec4 (0.2, 0.2, 0.2, 1);
+        gl_FragColor = vec4 (0, 0.2, 0.6, 1);
+    } else {
+        gl_FragColor = colour * vec4(0.2, 0.2, 0.2, 1) + max(l_dot_n, 0) * colour;
     }
-    gl_FragColor = colour * vec4(0.2, 0.2, 0.2, 1) + max(l_dot_n, 0) * colour;
 }
