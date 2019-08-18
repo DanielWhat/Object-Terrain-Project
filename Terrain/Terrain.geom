@@ -11,6 +11,7 @@ uniform float snow_level;
 uniform float max_grass_level;
 uniform sampler2D heightMap;
 uniform bool is_wireframe;
+uniform bool is_hidden_crack_fix_enabled;
 vec3 light_point = vec3(0, 100, 60);
 
 out float l_dot_n;
@@ -88,14 +89,14 @@ void main()
     }
     EndPrimitive();
 
-    /*if (is_wireframe) { //don't do any cracking fixes if in wireframe mode
+    if (is_wireframe && is_hidden_crack_fix_enabled) { //don't do any cracking fixes if in wireframe mode
         return;
-    }*/
+    }
 
     // Cracking fixes
 
     float t = 1 - (gl_in[2].gl_Position.z + 100) / 100.0;
-    
+
     //texture_coordinate[2].y < 0.01 ensures that we only generte a skirt at the edge of a patch
     //t > 0.05 ensures that we don't generate a skirt for the patch closest to us
     if (texture_coordinate[2].y < 0.01 && t > 0.05) {

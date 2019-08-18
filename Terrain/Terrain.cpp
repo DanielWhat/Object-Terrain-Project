@@ -26,6 +26,7 @@ GLuint water_level_loc;
 GLuint snow_level_loc;
 GLuint wireframe_bool_loc;
 GLuint max_grass_level_loc;
+GLuint is_hidden_loc;
 
 float CDR = 3.14159265/180.0;     //Conversion from degrees to rad (required in GLM 0.9.6)
 
@@ -39,6 +40,7 @@ float z_offset;
 float x_offset;
 GLuint polygon_mode = GL_FILL;
 bool is_wireframe = false;
+bool is_hidden_crack_fix_enabled = true;
 
 float water_level = 1;
 float snow_level = 5;
@@ -195,6 +197,7 @@ void initialise()
 	snow_level_loc = glGetUniformLocation(program, "snow_level");
 	wireframe_bool_loc = glGetUniformLocation(program, "is_wireframe");
 	max_grass_level_loc = glGetUniformLocation(program, "max_grass_level");
+	is_hidden_loc = glGetUniformLocation(program, "is_hidden_crack_fix_enabled");
 
 	GLuint texLoc = glGetUniformLocation(program, "heightMap");
 	glUniform1i(texLoc, 0);
@@ -231,7 +234,6 @@ void initialise()
     glBindVertexArray(0);
 
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
@@ -248,6 +250,7 @@ void display()
 	glUniform1f(snow_level_loc, snow_level);
 	glUniform1f(max_grass_level_loc, max_grass_level);
 	glUniform1i(wireframe_bool_loc, is_wireframe);
+	glUniform1i(is_hidden_loc, is_hidden_crack_fix_enabled);
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glPolygonMode(GL_FRONT_AND_BACK, polygon_mode);
@@ -267,6 +270,9 @@ void keyboard_event_handler (unsigned char key, int x, int y)
 	} else if (key == 'w') {
 		polygon_mode = (polygon_mode == GL_LINE) ? GL_FILL : GL_LINE;
 		is_wireframe ^= true;
+
+	} else if (key == 'r') {
+		is_hidden_crack_fix_enabled ^= true;
 
 	} else if (key == 'u') {
 		water_level += 0.1;
