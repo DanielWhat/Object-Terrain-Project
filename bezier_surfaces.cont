@@ -43,8 +43,8 @@ void main()
 
 
 		//Dynamic level of detail stuff
-		float tess_level = floor(((distance_from_teapot - 15) / (40 - 15)) * (2 - 18) + 18);
-		tess_level = max(2, tess_level);
+		float tess_level = floor(((distance_from_teapot - 15) / (40 - 15)) * (3 - 20) + 20);
+		tess_level = max(3, tess_level);
 
 		gl_TessLevelOuter[0] = tess_level;
 		gl_TessLevelOuter[1] = tess_level;

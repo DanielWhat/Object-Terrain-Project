@@ -21,7 +21,7 @@ float z_offset = 0;
 int teapot_polygon_mode = GL_FILL;
 glm::vec4 teapot_colour = LIGHT_BLUE;
 
-float initial_velocity = 4;
+float initial_velocity = 7;
 float explosion_time = 0;
 
 int number_of_vertices;
