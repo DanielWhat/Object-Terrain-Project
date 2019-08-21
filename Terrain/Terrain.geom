@@ -93,6 +93,7 @@ void main()
         return;
     }
 
+
     // Cracking fixes
 
     float t = 1 - (gl_in[2].gl_Position.z + 100) / 100.0;

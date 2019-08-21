@@ -79,54 +79,35 @@ void generateData()
 	}
 }
 
-void load_height_map(string heightmap_filename, GLuint tex_id, GLuint gl_texture)
-/* Takes a heihgtmap file name, a texture_id and a GL_TEXTUREi constant. It then
+
+
+void load_texture(string texture_filename, GLuint tex_id, GLuint gl_texture)
+/* Takes a texture file name, a texture_id and a GL_TEXTUREi constant. It then
  *  assigns the given texture to GL_TEXTUREi and the texture_id */
 {
 	glActiveTexture(gl_texture);
     glBindTexture(GL_TEXTURE_2D, tex_id);
-	loadTGA(heightmap_filename);
+	loadTGA(texture_filename);
 
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
+
 
 
 //Loads terrain texture
 void loadTextures()
 {
-    glGenTextures(6, texID);
-	load_height_map("HeightMap1.tga", texID[0], GL_TEXTURE0);
+	int num_textures = 5;
+	const char* textures[num_textures] = {"HeightMap1.tga", "./textures/dirt.tga", "./textures/green_grass.tga", "./textures/water.tga", "./textures/snow.tga"};
+	int texture_actives[num_textures] = {GL_TEXTURE0, GL_TEXTURE1, GL_TEXTURE2, GL_TEXTURE3, GL_TEXTURE4, GL_TEXTURE5};
+    glGenTextures(num_textures, texID);
 
-
-	glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texID[1]);
-	loadTGA("./textures/dirt.tga");
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, texID[2]);
-	loadTGA("./textures/green_grass.tga");
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, texID[3]);
-	loadTGA("./textures/water.tga");
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-	glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, texID[4]);
-	loadTGA("./textures/snow.tga");
-
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	for (int i = 0; i < num_textures; i++) {
+		load_texture(textures[i], texID[i], texture_actives[i]);
+	}
 }
+
 
 
 //Loads a shader file and returns the reference to a shader object
@@ -158,10 +139,11 @@ GLuint loadShader(GLenum shaderType, string filename)
 	return shader;
 }
 
+
+
 //Initialise the shader program, create and load buffer data
 void initialise()
 {
-//--------Load terrain height map-----------
 	loadTextures();
 //--------Load shaders----------------------
 	GLuint shaderv = loadShader(GL_VERTEX_SHADER, "Terrain.vert");
@@ -237,6 +219,8 @@ void initialise()
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
+
+
 //Display function to compute uniform values based on transformation parameters and to draw the scene
 void display()
 {
@@ -259,13 +243,15 @@ void display()
 	glFlush();
 }
 
+
+
 void keyboard_event_handler (unsigned char key, int x, int y)
 {
 	if (key == '1') {
-		load_height_map("HeightMap1.tga", texID[0], GL_TEXTURE0);
+		load_texture("HeightMap1.tga", texID[0], GL_TEXTURE0);
 
 	} else if (key == '2') {
-		load_height_map("HeightMap2.tga", texID[0], GL_TEXTURE0);
+		load_texture("HeightMap2.tga", texID[0], GL_TEXTURE0);
 
 	} else if (key == 'w') {
 		polygon_mode = (polygon_mode == GL_LINE) ? GL_FILL : GL_LINE;
@@ -290,6 +276,7 @@ void keyboard_event_handler (unsigned char key, int x, int y)
 	}
 	glutPostRedisplay();
 }
+
 
 
 void special_keyboard_event_handler(int key, int x, int y)
