@@ -5,7 +5,6 @@
 #include <GL/freeglut.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "CubePatches.h"
 
 #define LIGHT_BLUE glm::vec4(0, 0.2, 1, 1)
 #define BLACK glm::vec4(0, 0, 0, 1)
